@@ -1,0 +1,420 @@
+import os
+import shutil
+import subprocess
+import threading           # 多线程
+import tkinter as tk
+import sys
+import importlib.util
+from tkinter import ttk
+from tkinter import scrolledtext
+from tkinter import messagebox
+
+_collect_lock=threading.Lock()
+
+
+
+# ============================ 加载配置 ============================
+def load_external_config():
+    """
+    加载与可执行文件同目录下的 config.py
+    如果找不到，则使用内置的默认配置（可选）
+    """
+    # 获取可执行文件所在目录
+    if getattr(sys, 'frozen', False):
+        # 打包后的 .app 或 exe
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        # 开发环境（python main.py）
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    config_path = os.path.join(base_dir, 'config.py')
+
+    if not os.path.exists(config_path):
+        # 没有外部配置文件，可以报错或使用内置默认值
+        raise FileNotFoundError(f"缺少配置文件，请将 config.py 放在程序同级目录下：{config_path}")
+
+    # 动态加载 config.py 模块
+    spec = importlib.util.spec_from_file_location("user_config", config_path)
+    user_config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(user_config)
+
+    # 把配置模块里的变量挂载到全局（或者直接返回）
+    return user_config
+
+# 加载配置（全局变量）
+CFG = load_external_config()
+
+# 为了方便，把常用的配置提取成全局变量（和原来一样）
+STATION = CFG.STATION
+LOCAL_V64_LOG = CFG.LOCAL_V64_LOG
+LOCAL_V64S_LOG = CFG.LOCAL_V64S_LOG
+STATUS = CFG.STATUS
+TT_steps = CFG.TT_steps
+CYG_steps = CFG.CYG_steps
+
+
+
+
+
+
+
+# ============================ 功能实现 ============================
+
+#清空本地日志保存文件夹  ("./V64_log")
+def prepare_local_folders(root,log_text,folder_path):
+	try:
+		#1.若本地没有log文件夹，则创建
+		if not os.path.exists(folder_path):
+			os.makedirs(folder_path)
+
+
+		#2.识别当前是那个工位 V64/V64S         
+		station_type=None
+		if "v64s" in folder_path.lower():
+			station_type="V64S"
+		elif "v64" in folder_path.lower():
+			station_type="V64"
+
+		if not station_type:
+			root.aftr(0,lambda:write_log("❌️未识别到本地工位"))
+			return
+
+
+		#3.遍历STATION字典，只处理当前Bundle版本的
+		for dir_name in STATION.keys():
+			#只匹配自己bundle(V64/NaV64Shan)
+			prefix=dir_name.split("_")[0]
+			if prefix==station_type:
+				#拼接完整路径:V64_log/V64_TT_PreDFU
+				full_path=os.path.join(folder_path,dir_name)
+
+				#===============核心逻辑：以每个路径为单位操作===============
+				#1.不存在->创建
+				#2.存在->清空
+				if not os.path.exists(full_path):
+					os.makedirs(full_path)
+				else:
+						#os.system(f"rm -rf {full_path}/*")
+					clear_dir_keep_folder(full_path)
+					root.after(0,lambda:write_log(log_text,f"已清空:{full_path}"))
+
+	except Exception as e:
+		write_log(log_text,f"❌️准备本地文件夹失败:{folder_path}->{e}")
+		raise
+
+
+
+
+
+#清空远程站位的log文件夹
+def clean_remote_logs(log_text,user,ip,remote_path):
+	try:
+		#1.若远程存在该文件夹，什么都不做；若不存在，则创建
+		cmd_mkdir=f"ssh {user}@{ip} mkdir -p {remote_path}"
+		subprocess.run(cmd_mkdir,check=True,capture_output=True)
+		#2.清空文件夹内所有内容
+		cmd_clear=f"ssh {user}@{ip} rm -rf {remote_path}/* "
+		subprocess.run(cmd_clear,check=True,capture_output=True)
+
+	except Exception as e:
+		write_log(log_text,f"❌️准备远程站位文件夹失败:{ip}->{e}")
+		raise
+	
+
+
+#统一修改色块状态
+def set_status(label,status):
+	label.config(bg=STATUS[status])
+	
+
+#清除Windows环境下的文件夹但保留本身
+def clear_dir_keep_folder(folder_path):
+	if os.path.exists(folder_path):
+		for item in os.listdir(folder_path):
+			item_path=os.path.join(folder_path,item)
+			# try:
+			if os.path.isfile(item_path):
+				os.remove(item_path)
+			elif os.path.isdir(item_path):
+				shutil.rmtree(item_path)
+			
+
+
+
+
+#重置界面所有色块颜色
+def reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
+	try:
+		for lbl in V64_TT_labels.values():
+			# root.after(0, lambda: set_status(lbl, "wait"))
+			set_status(lbl, "wait")
+		for lbl in V64_CYG_labels.values():
+			# root.after(0, lambda: set_status(lbl, "wait"))
+			set_status(lbl, "wait")
+		for lbl in V64S_TT_labels.values():
+			# root.after(0, lambda: set_status(lbl, "wait"))
+			set_status(lbl, "wait")
+		for lbl in V64S_CYG_labels.values():
+			# root.after(0, lambda: set_status(lbl, "wait"))
+			set_status(lbl, "wait")
+
+	except Exception as e:
+		write_log(log_text,f"❌️重置界面失败:{e}")
+		raise
+
+		
+
+
+#一键完成重置：重置界面+本地文件夹+远程文件夹
+def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels,local_V64_log,local_V64S_log):
+
+
+	#弹框提示：确认要执行重置操作
+	if not messagebox.askokcancel(
+		"⚠️ 确认重置",
+        "即将执行：\n\n"
+        "• 恢复所有界面状态为灰色\n"
+        "• 清空 V64 本地所有日志\n"
+        "• 清空 V64S 本地所有日志\n"
+        "• 清空所有远程机器日志\n\n"
+        "确定继续吗？"
+	):
+		return False
+
+	def reset_work():
+		#线程安全检查，防止多线程同时访问资源
+		if not _collect_lock.acquire(blocking=False):
+			root.after(0,lambda:write_log(log_text, "⚠️ 有其他任务运行中，无法重置"))
+			return
+		
+		#执行重置逻辑
+		try:
+			#1.清空界面
+			root.after(0,lambda:reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels))
+			root.after(0,lambda:write_log(log_text,"✅️界面重置成功"))
+
+			#2.清空本地
+			prepare_local_folders(root,log_text,local_V64_log)
+			prepare_local_folders(root,log_text,local_V64S_log)
+			root.after(0,lambda:write_log(log_text,"✅️本地log已清理"))
+
+			#3.清空远程
+			for key,info in STATION.items():
+				ip=info["ip"].strip()
+				user=info["user"]
+				remote_dir=info["remote_dir"]
+				if ip:
+					clean_remote_logs(log_text,user,ip,remote_dir)
+					root.after(0,lambda ip=ip:write_log(log_text,f"✅️远程清理:{ip}"))
+
+			#for debug
+			# ip="139.224.223.137"
+			# user="root"
+			# remote_dir="/home/cyh/python_test/V64_TT_PreDFU"
+			# clean_remote_logs(user,ip,remote_dir)
+			# print("✅️远程清理")
+
+			root.after(0,lambda:write_log(log_text,"所有重置任务已完成！"))
+			return True
+
+
+
+		except Exception as e:
+			root.after(0,lambda:write_log(log_text,f"❌️重置失败:{e}"))
+			return False
+		
+
+		finally:
+			_collect_lock.release()
+		
+	t=threading.Thread(target=reset_work,daemon=True)
+	t.start()
+
+
+
+
+
+#单点采集函数
+def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir):
+	#label_obj:当前站位对应色块label  user:远程用户名  ip:设备IP  remote_dir:远程日志目录  local_save_dir：本地保存目录
+
+	#如果本地目录已存在，在二次收取时自动跳过
+	if os.path.exists(local_save_dir) and len(os.listdir(local_save_dir)) > 0:
+		root.after(0,lambda:write_log(log_text,f"✅️log已存在:{ip}{remote_dir}->跳过收集"))
+		root.after(0,lambda:set_status(label_obj,"success"))
+		return True # 直接返回成功，不重复收集
+
+	ip=ip.strip()
+	if not ip:
+		return
+	
+	#1.状态改为收集中
+	root.after(0,lambda:set_status(label_obj,"running"))
+
+
+	#2.拉取远程整个目录到本地
+	try:
+		cmd=[
+			"scp","-r",
+			f"{user}@{ip}:{remote_dir}/*",
+			local_save_dir
+		]
+		subprocess.run(cmd,check=True,capture_output=True)
+
+		#成功时变绿色
+		root.after(0,lambda:set_status(label_obj,"success"))
+		root.after(0,lambda:write_log(log_text,f"✅️成功:{ip}{remote_dir}->收集完成"))
+		print(f"采集成功：{ip}->{remote_dir}")
+
+	except Exception as e:
+		err = str(e).lower()
+		if "not find" in err or "no such file" in err or "directory is empty" in err or "returned non-zero exit status 1" in err:
+			reason="远程文件夹为空"
+		elif "connection refused" in err or "timed out" in err:
+			reason="连接超时"
+		elif "permission" in err or "denied" in err:
+			reason="权限不足"
+		else:
+			reason=f"失败:{str(e)[:20]}"
+
+
+		root.after(0,lambda:write_log(log_text,f"❌️收取失败:{reason}"))
+		root.after(0, lambda: set_status(label_obj, "fail"))
+		
+
+
+
+
+#批量全处理-》一键启动全部采集
+def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
+	
+	
+	def collect_work():
+		#线程安全检查，防止多线程同时访问资源
+		if not _collect_lock.acquire(blocking=False):
+			root.after(0,lambda:write_log(log_text,"⚠️ 已有收集或重置任务在运行，稍后重试"))
+			return
+		
+		try:
+			#绑定"V64 TT PreDFU"->label + 本地路径 + 远程路径
+			label_map={}
+
+			#V64_TT
+			for key,lab in V64_TT_labels.items():
+				full_key=f"V64_TT_{key}"
+				label_map[full_key]=(lab,LOCAL_V64_LOG)
+
+			#V64_CYG
+			for key,lab in V64_CYG_labels.items():
+				full_key=f"V64_CYG_{key}"
+				label_map[full_key]=(lab,LOCAL_V64_LOG)
+
+			#V64S_TT
+			for key,lab in V64S_TT_labels.items():
+				full_key=f"V64S_TT_{key}"
+				label_map[full_key]=(lab,LOCAL_V64S_LOG)
+
+			#V64S_CYG
+			for key,lab in V64S_CYG_labels.items():
+				full_key=f"V64S_CYG_{key}"
+				label_map[full_key]=(lab,LOCAL_V64S_LOG)
+
+
+			#遍历全局配置，逐个采集
+			for station_key,info in STATION.items():
+				if station_key not in label_map:
+					continue
+
+				lab_obj,local_root=label_map[station_key]
+				local_full_path=os.path.join(local_root,station_key)
+
+				#执行单点采集逻辑
+				collect_single_log(
+					root,
+					log_text,
+					label_obj=lab_obj,
+					user=info["user"],
+					ip=info["ip"],
+					remote_dir=info["remote_dir"],
+					local_save_dir=local_full_path
+				)
+
+		except Exception as e:
+			print("采集失败原因：", e)
+			messagebox.showerror("错误", f"采集失败：{e}")
+
+			
+		finally:
+			_collect_lock.release()
+		
+	t=threading.Thread(target=collect_work,daemon=True)
+	t.start()
+
+
+
+	# ============================ log日志窗口先相关操作 ==============================
+#写入日志函数
+def write_log(log_text,msg):
+    log_text.config(state=tk.NORMAL)
+    log_text.insert(tk.END,msg+"\n")
+    log_text.config(state=tk.DISABLED)
+    log_text.see(tk.END)
+
+#清空日志
+def clear_log_window(log_text):
+    log_text.config(state=tk.NORMAL)
+    log_text.delete(1.0, tk.END)
+    log_text.config(state=tk.DISABLED)
+
+
+
+	# ============================ log日志窗口先相关操作 ==============================
+class AutoCollector:
+	def __init__(self,root,auto_btn,collect_callback,all_label_dicts,interval_sec=60):
+		self.root=root
+		self.auto_btn=auto_btn
+		self.collect_callback=collect_callback
+		self.all_labels=all_label_dicts
+		self.interval_ms=interval_sec*1000
+		self.enabled=False
+
+	#检查显示块颜色->检查log收集情况
+	def _all_success(self):
+		for label_dict in self.all_labels:
+			for lbl in label_dict.values():
+				if lbl.cget("bg") != STATUS["success"]:
+					return False		
+		return True
+
+
+	#自动收取逻辑
+	def _schedule(self):
+		if not self.enabled:
+			return 
+		
+		#开始执行collect_log
+		self.collect_callback()
+
+		#检查log收集情况。若收集完成->self.enabled=False 结束    收集未完成->继续调度
+		if self._all_success():
+			self.enabled=False
+			self.auto_btn.config(text="开始自动收集")
+			return 
+		
+		self.root.after(self.interval_ms,self._schedule)
+
+	#设置时间间隔
+	def set_interval(self, interval_sec):
+		if interval_sec > 0:
+			self.interval_ms = interval_sec * 1000
+
+
+	#自动收集开关切换
+	def toggle(self):
+		self.enabled=not self.enabled
+		if self.enabled:
+			self._schedule()
+			self.auto_btn.config(text="停止自动收集")
+		else:
+			self.auto_btn.config(text="开始自动收集")
+
