@@ -7,17 +7,19 @@ STATION={
     #for debug
     "V64_TT_PreDFU": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PreDFU"},
     "V64_TT_PreFCT": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PreFCT"},
-    "V64_TT_PostDFU":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PostDFU"},
+    "V64_TT_PostDFU-SOC":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PostDFU-SOC"},
+    "V64_TT_PostDFU-ENG":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PostDFU-ENG"},
     "V64_TT_PostFCT":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_PostFCT"},
-    "V64_TT_DMNS":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_DMNS"},
-    "V64_TT_IBAT_RESET":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_IBAT_RESET"},
+    "V64_TT_FCT-ENG":{"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_TT_FCT-ENG"},
 
     #V64 CYG
     "V64_CYG_PreDFU": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PreDFU"},
     "V64_CYG_PreFCT": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PreFCT"},
-    "V64_CYG_PostDFU": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PostDFU"},
+    "V64_CYG_PostDFU-SOC": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PostDFU-SOC"},
+    "V64_CYG_PostDFU-ENG": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PostDFU-ENG"},
     "V64_CYG_PostFCT": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_PostFCT"},
-    "V64_CYG_DMNS": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_DMNS"},
+    "V64_CYG_FCT-ENG": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64_CYG_FCT-ENG"},
+
 
     #V64S TT
     # "V64S_TT_PreDFU": {":""139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_TT_PreDFU"},
@@ -57,11 +59,11 @@ STATUS = {
 
 #======================站位信息========================
 TT_steps = [
-"PreDFU","PreFCT","PostDFU","PostFCT","DMNS","IBAT_RESET"
+"PreDFU","PreFCT","PostDFU-SOC","PostDFU-ENG","PostFCT","FCT-ENG"
 ]
 
 CYG_steps=[
-"PreDFU","PreFCT","PostDFU","PostFCT","DMNS"
+"PreDFU","PreFCT","PostDFU-SOC","PostDFU-ENG","PostFCT","FCT-ENG"
 ]
 
 

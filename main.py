@@ -58,7 +58,7 @@ v64_CYG_labels={}
 
 for step in TT_steps:
     lbl = tk.Label(
-        v64_frame_TT, text=step, width=8, height=2,
+        v64_frame_TT, text=step, width=12, height=2,
         bg=STATUS["wait"], relief="solid"
     )
     lbl.pack(side="left", padx=2)
@@ -66,7 +66,7 @@ for step in TT_steps:
 
 for step in CYG_steps:
     lbl = tk.Label(
-        v64_frame_CYG, text=step, width=8, height=2,
+        v64_frame_CYG, text=step, width=12, height=2,
         bg=STATUS["wait"], relief="solid"
     )
     lbl.pack(side="left", padx=2)
@@ -96,7 +96,7 @@ v64s_CYG_labels={}
 
 for step in TT_steps:
     lbl = tk.Label(
-        v64s_frame_TT, text=step, width=8, height=2,
+        v64s_frame_TT, text=step, width=12, height=2,
         bg=STATUS["wait"], relief="solid"
     )
     lbl.pack(side="left", padx=2)
@@ -104,7 +104,7 @@ for step in TT_steps:
 
 for step in CYG_steps:
     lbl=tk.Label(
-	v64s_frame_CYG,text=step,width=8,height=2,
+	v64s_frame_CYG,text=step,width=12,height=2,
 	bg=STATUS["wait"],relief="solid"
 	)
     lbl.pack(side="left",padx=2)
@@ -132,8 +132,7 @@ def test_color():
 
 
 test_btn = tk.Button(root, text="测试颜色变化", command=test_color,width=18)
-test_btn.pack(pady=5)
-
+test_btn.pack(pady=(40,20))
 
 
 # ========================= 重置按钮 ============================
@@ -144,7 +143,7 @@ def on_full_reset():
     full_reset(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels,LOCAL_V64_LOG,LOCAL_V64S_LOG)
 
 reset_btn=tk.Button(root,text="重置",command=on_full_reset,width=18)
-reset_btn.pack(pady=15)
+reset_btn.pack(pady=20)
 
 
 
@@ -161,7 +160,7 @@ def on_full_collect():
 
 # ========================= 一键自动收取按钮 ============================
 auto_frame = tk.Frame(root)
-auto_frame.pack(pady=5)
+auto_frame.pack(pady=20)
 tk.Label(auto_frame, text="自动收集间隔(秒):").pack(side="left")
 interval_entry = tk.Entry(auto_frame, width=6)
 interval_entry.insert(0, "60")

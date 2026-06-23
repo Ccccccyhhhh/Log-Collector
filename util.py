@@ -76,7 +76,7 @@ def prepare_local_folders(root,log_text,folder_path):
 			station_type="V64"
 
 		if not station_type:
-			root.aftr(0,lambda:write_log("❌️未识别到本地工位"))
+			root.aftr(0,lambda:write_log(log_text,"❌️未识别到本地工位"))
 			return
 
 
@@ -94,9 +94,16 @@ def prepare_local_folders(root,log_text,folder_path):
 				if not os.path.exists(full_path):
 					os.makedirs(full_path)
 				else:
-						#os.system(f"rm -rf {full_path}/*")
-					clear_dir_keep_folder(full_path)
-					root.after(0,lambda:write_log(log_text,f"已清空:{full_path}"))
+					# 获取目录下所有内容，过滤隐藏文件也一并判断
+					dir_content = os.listdir(full_path)
+					if len(dir_content) > 0:
+                        # 目录有内容，执行清空
+						clear_dir_keep_folder(full_path)
+						root.after(0,lambda p=full_path:write_log(log_text,f"已清空:{p}"))
+					else:
+                        # 目录为空，不做任何操作，可选择打印日志
+                        # root.after(0,lambda p=full_path:write_log(log_text,f"目录为空无需清理:{p}"))
+						pass
 
 	except Exception as e:
 		write_log(log_text,f"❌️准备本地文件夹失败:{folder_path}->{e}")
@@ -110,16 +117,16 @@ def prepare_local_folders(root,log_text,folder_path):
 def clean_remote_logs(log_text,user,ip,remote_path):
 	try:
 		#1.若远程存在该文件夹，什么都不做；若不存在，则创建
-		cmd_mkdir=f"ssh {user}@{ip} mkdir -p {remote_path}"
+		cmd_mkdir=["ssh",f"{user}@{ip}","mkdir","-p",remote_path]
 		subprocess.run(cmd_mkdir,check=True,capture_output=True)
 		#2.清空文件夹内所有内容
-		cmd_clear=f"ssh {user}@{ip} rm -rf {remote_path}/* "
+		cmd_clear=["ssh",f"{user}@{ip}","rm","-rf",f"{remote_path}/*"]
 		subprocess.run(cmd_clear,check=True,capture_output=True)
 
 	except Exception as e:
 		write_log(log_text,f"❌️准备远程站位文件夹失败:{ip}->{e}")
 		raise
-	
+
 
 
 #统一修改色块状态
@@ -137,7 +144,6 @@ def clear_dir_keep_folder(folder_path):
 				os.remove(item_path)
 			elif os.path.isdir(item_path):
 				shutil.rmtree(item_path)
-			
 
 
 
@@ -181,6 +187,7 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
 	):
 		return False
 
+
 	def reset_work():
 		#线程安全检查，防止多线程同时访问资源
 		if not _collect_lock.acquire(blocking=False):
@@ -220,7 +227,7 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
 
 
 		except Exception as e:
-			root.after(0,lambda:write_log(log_text,f"❌️重置失败:{e}"))
+			root.after(0,lambda e=e:write_log(log_text,f"❌️重置失败:{e}"))
 			return False
 		
 
@@ -417,4 +424,3 @@ class AutoCollector:
 			self.auto_btn.config(text="停止自动收集")
 		else:
 			self.auto_btn.config(text="开始自动收集")
-
