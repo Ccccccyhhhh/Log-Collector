@@ -5,6 +5,7 @@ import threading           # 多线程
 import tkinter as tk
 import sys
 import importlib.util
+import time
 from tkinter import ttk
 from tkinter import scrolledtext
 from tkinter import messagebox
@@ -76,7 +77,7 @@ def prepare_local_folders(root,log_text,folder_path):
 			station_type="V64"
 
 		if not station_type:
-			root.aftr(0,lambda:write_log(log_text,"❌️未识别到本地工位"))
+			root.after(0,lambda:write_log(log_text,"❌️未识别到本地工位"))
 			return
 
 
@@ -116,12 +117,11 @@ def prepare_local_folders(root,log_text,folder_path):
 #清空远程站位的log文件夹
 def clean_remote_logs(log_text,user,ip,remote_path):
 	try:
-		#1.若远程存在该文件夹，什么都不做；若不存在，则创建
-		cmd_mkdir=["ssh",f"{user}@{ip}","mkdir","-p",remote_path]
-		subprocess.run(cmd_mkdir,check=True,capture_output=True)
-		#2.清空文件夹内所有内容
-		cmd_clear=["ssh",f"{user}@{ip}","rm","-rf",f"{remote_path}/*"]
-		subprocess.run(cmd_clear,check=True,capture_output=True)
+		subprocess.run(
+				["ssh",f"{user}@{ip}",f"rm -rf {remote_path} && mkdir -p {remote_path}"],
+				check=True,
+				capture_output=True,
+				text=True)
 
 	except Exception as e:
 		write_log(log_text,f"❌️准备远程站位文件夹失败:{ip}->{e}")
@@ -238,34 +238,43 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
 	t.start()
 
 
+#判断目录内有效文件个数
+def dir_is_not_empty(local_save_dir):
+	if not os.path.exists(local_save_dir):
+		return False
+	all_files=os.listdir(local_save_dir)
+	vaild_files=[f for f in all_files if not f.startswith(".")]
+	return any(vaild_files)
 
+		
 
 
 #单点采集函数
 def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir):
 	#label_obj:当前站位对应色块label  user:远程用户名  ip:设备IP  remote_dir:远程日志目录  local_save_dir：本地保存目录
 
-	#如果本地目录已存在，在二次收取时自动跳过
-	if os.path.exists(local_save_dir) and len(os.listdir(local_save_dir)) > 0:
-		root.after(0,lambda:write_log(log_text,f"✅️log已存在:{ip}{remote_dir}->跳过收集"))
+	#如果本地目录已存在有效文件，在二次收取时自动跳过
+	if  dir_is_not_empty(local_save_dir):
+		#root.after(0,lambda:write_log(log_text,f"✅️log已存在:{ip}{remote_dir}->跳过收集"))
 		root.after(0,lambda:set_status(label_obj,"success"))
 		return True # 直接返回成功，不重复收集
+	
 
 	ip=ip.strip()
 	if not ip:
 		return
-	
+		
 	#1.状态改为收集中
 	root.after(0,lambda:set_status(label_obj,"running"))
 
 
-	#2.拉取远程整个目录到本地
+		#2.拉取远程整个目录到本地
 	try:
 		cmd=[
 			"scp","-r",
 			f"{user}@{ip}:{remote_dir}/*",
 			local_save_dir
-		]
+			]
 		subprocess.run(cmd,check=True,capture_output=True)
 
 		#成功时变绿色
@@ -276,18 +285,18 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 	except Exception as e:
 		err = str(e).lower()
 		if "not find" in err or "no such file" in err or "directory is empty" in err or "returned non-zero exit status 1" in err:
-			reason="远程文件夹为空"
+			root.after(0, lambda: set_status(label_obj, "wait"))
+			root.after(0,lambda:write_log(log_text,f"远程文件夹为空，等待下一轮收集：{ip}{remote_dir}"))
 		elif "connection refused" in err or "timed out" in err:
-			reason="连接超时"
+			root.after(0, lambda: set_status(label_obj, "fail"))
+			root.after(0,lambda:write_log(log_text,f"❌️连接超时:{ip}"))
 		elif "permission" in err or "denied" in err:
-			reason="权限不足"
+			root.after(0, lambda: set_status(label_obj, "fail"))
+			root.after(0,lambda:write_log(log_text,f"❌️权限不足:{ip}"))
 		else:
-			reason=f"失败:{str(e)[:20]}"
+			root.after(0, lambda: set_status(label_obj, "fail"))
+			root.after(0,lambda:write_log(log_text,f"❌️收取失败:{str(e)[:20]}"))
 
-
-		root.after(0,lambda:write_log(log_text,f"❌️收取失败:{reason}"))
-		root.after(0, lambda: set_status(label_obj, "fail"))
-		
 
 
 
@@ -303,6 +312,11 @@ def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,
 			return
 		
 		try:
+			#打印日志分隔符和时间戳
+			timestamp=time.strftime("%Y-%m-%d %H:%M:%S")
+			separator=f"\n{'='*60}\n {timestamp}开始收取log \n{'='*60}\n"
+			root.after(0,lambda:write_log(log_text,separator))
+
 			#绑定"V64 TT PreDFU"->label + 本地路径 + 远程路径
 			label_map={}
 

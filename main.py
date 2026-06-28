@@ -115,24 +115,24 @@ for step in CYG_steps:
 
 
 # ================== 测试按钮（演示颜色变化） ==================
-def test_color():
+# def test_color():
 	# set_status(v64_TT_labels["PreDFU"],"running")
 	# set_status(v64_CYG_labels["PreFCT"],"success")
 	# set_status(v64s_CYG_labels["DMNS"],"success")
 	# set_status(v64s_CYG_labels["PostFCT"],"fail")
     #collect_single_log(root,log_text,v64_TT_labels["PreDFU"],"root","139.224.223.137","/home/cyh/python_test/V64_TT_PreDFU",LOCAL_V64_LOG)
-    for lbl in v64_TT_labels.values():
-        set_status(lbl, "success")
-    for lbl in v64_CYG_labels.values():
-        set_status(lbl, "success")
-    for lbl in v64s_TT_labels.values():
-        set_status(lbl, "success")
-    for lbl in v64s_CYG_labels.values():
-        set_status(lbl, "success")
+#     for lbl in v64_TT_labels.values():
+#         set_status(lbl, "success")
+#     for lbl in v64_CYG_labels.values():
+#         set_status(lbl, "success")
+#     for lbl in v64s_TT_labels.values():
+#         set_status(lbl, "success")
+#     for lbl in v64s_CYG_labels.values():
+#         set_status(lbl, "success")
 
+# test_btn = tk.Button(root, text="测试颜色变化", command=test_color,width=18)
+# test_btn.pack(pady=(40,20))
 
-test_btn = tk.Button(root, text="测试颜色变化", command=test_color,width=18)
-test_btn.pack(pady=(40,20))
 
 
 # ========================= 重置按钮 ============================
@@ -153,8 +153,8 @@ def on_full_collect():
     #clear_log_window(log_text)  #清空之前的日志
     start_all_collect(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
 
-# collect_btn=tk.Button(root,text="收取",command=on_full_collect,width=18)
-# collect_btn.pack(pady=15)
+collect_btn=tk.Button(root,text="收集",command=on_full_collect,width=18)
+collect_btn.pack(pady=15)
 
 
 
