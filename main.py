@@ -10,7 +10,7 @@ auto_collect_interval=6000 #自动轮巡收取的时间间隔 默认60秒
 # ============================ 主界面 ==============================
 root = tk.Tk()
 root.title("工位日志收集工具")
-root.geometry("850x600")
+root.geometry("900x700")
 
 
 # ============================ 日志窗口 ============================
@@ -45,33 +45,69 @@ v64_frame_TT = tk.Frame(root)
 v64_frame_TT.pack(anchor="w", padx=20)
 
 v64_frame_CYG=tk.Frame(root)
-v64_frame_CYG.pack(anchor="w",padx=20,pady=5)
+v64_frame_CYG.pack(anchor="w",padx=20,pady=8)
 
 #定义vendor提示标签
 tk.Label(v64_frame_TT, text="TT:", font=("",10,"bold"),width=4).pack(side="left", padx=2)
 tk.Label(v64_frame_CYG,text="CYG:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
 
 
-#将frame内创建的各个站位的label创建并管理起来
+#将frame内创建的各个站位的label和entry创建并管理起来
+all_ip_entries={}
+
 v64_TT_labels = {}
 v64_CYG_labels={}
 
+
 for step in TT_steps:
+    #创建独立的小Frame，将每个lab和entry绑定在一起
+    sub_frame=tk.Frame(v64_frame_TT)
+    sub_frame.pack(side="left",padx=2)
+    #创建色块对象label
     lbl = tk.Label(
-        v64_frame_TT, text=step, width=12, height=2,
+        sub_frame, text=step, width=14, height=3,
         bg=STATUS["wait"], relief="solid"
     )
-    lbl.pack(side="left", padx=2)
+    lbl.pack(padx=2)
     v64_TT_labels[step] = lbl
 
+    #创建Entry输入框
+    entry=tk.Entry(sub_frame,width=14,justify="center")
+    entry.pack(pady=(2,0))
+
+    #拼接出完整路径（"V64_TT_PreDFU"），并从station中取出对应的ip插入输入框中
+    key=f"V64_TT_{step}"
+    default_ip=STATION[key]["ip"]
+    entry.insert(0,default_ip)
+
+    all_ip_entries[key]=entry
+
+
+
+    
+
 for step in CYG_steps:
+    sub_frame=tk.Frame(v64_frame_CYG)
+    sub_frame.pack(side="left",padx=2)
     lbl = tk.Label(
-        v64_frame_CYG, text=step, width=12, height=2,
+        sub_frame,text=step, width=14, height=3,
         bg=STATUS["wait"], relief="solid"
     )
-    lbl.pack(side="left", padx=2)
+    lbl.pack(padx=2)
     v64_CYG_labels[step] = lbl
+
+    #创建Entry输入框
+    entry=tk.Entry(sub_frame,width=14,justify="center")
+    entry.pack(pady=(2,0))
+
+    key=f"V64_CYG_{step}"
+    default_ip=STATION[key]["ip"]
+    entry.insert(0,default_ip)
+
+    all_ip_entries[key]=entry
     
+
+
 
 # ================== V64S 工位 ==================
 v64s_label = tk.Label(root, text="V64S 工位", font=("黑体",15,"bold"))
@@ -82,7 +118,7 @@ v64s_frame_TT = tk.Frame(root)
 v64s_frame_TT.pack(anchor="w", padx=20)
 
 v64s_frame_CYG=tk.Frame(root)
-v64s_frame_CYG.pack(anchor="w",padx=20,pady=5)
+v64s_frame_CYG.pack(anchor="w",padx=20,pady=8)
 
 
 #定义vendor标识符
@@ -95,66 +131,95 @@ v64s_CYG_labels={}
 
 
 for step in TT_steps:
+    sub_frame=tk.Frame(v64s_frame_TT)
+    sub_frame.pack(side="left",padx=2)
+
     lbl = tk.Label(
-        v64s_frame_TT, text=step, width=12, height=2,
+        sub_frame, text=step, width=14, height=3,
         bg=STATUS["wait"], relief="solid"
     )
-    lbl.pack(side="left", padx=2)
+    lbl.pack(padx=2)
     v64s_TT_labels[step] = lbl
 
+    entry=tk.Entry(sub_frame,width=14,justify="center")
+    entry.pack(pady=(2,0))
+
+    key=f"V64S_TT_{step}"
+    default_ip=STATION[key]["ip"]
+    entry.insert(0,default_ip)
+
+    all_ip_entries[key]=entry
+
+
+
 for step in CYG_steps:
+    sub_frame=tk.Frame(v64s_frame_CYG)
+    sub_frame.pack(side="left",padx=2)
+
     lbl=tk.Label(
-	v64s_frame_CYG,text=step,width=12,height=2,
+	sub_frame,text=step,width=14,height=3,
 	bg=STATUS["wait"],relief="solid"
 	)
-    lbl.pack(side="left",padx=2)
+    lbl.pack(padx=2)
     v64s_CYG_labels[step]=lbl
 
+    entry=tk.Entry(sub_frame,width=14,justify="center")
+    entry.pack(pady=(2,0))
+
+    key=f"V64S_CYG_{step}"
+    default_ip=STATION[key]["ip"]
+    entry.insert(0,default_ip)
+
+    all_ip_entries[key]=entry
 
 
 
+#<---------------------------------------------- 操作组---------------------------------------------->
+action_frame=tk.Frame(root)
+action_frame.pack(pady=10)
 
-# ================== 测试按钮（演示颜色变化） ==================
-# def test_color():
-	# set_status(v64_TT_labels["PreDFU"],"running")
-	# set_status(v64_CYG_labels["PreFCT"],"success")
-	# set_status(v64s_CYG_labels["DMNS"],"success")
-	# set_status(v64s_CYG_labels["PostFCT"],"fail")
-    #collect_single_log(root,log_text,v64_TT_labels["PreDFU"],"root","139.224.223.137","/home/cyh/python_test/V64_TT_PreDFU",LOCAL_V64_LOG)
-#     for lbl in v64_TT_labels.values():
-#         set_status(lbl, "success")
-#     for lbl in v64_CYG_labels.values():
-#         set_status(lbl, "success")
-#     for lbl in v64s_TT_labels.values():
-#         set_status(lbl, "success")
-#     for lbl in v64s_CYG_labels.values():
-#         set_status(lbl, "success")
-
-# test_btn = tk.Button(root, text="测试颜色变化", command=test_color,width=18)
-# test_btn.pack(pady=(40,20))
-
-
-
-# ========================= 重置按钮 ============================
-#点击按钮调用，实现一键清空
-def on_full_reset():
+# ========================= 重置按钮-重置本地 ============================
+#点击按钮调用，实现一键清空界面和本地文件夹
+def on_full_reset_local():
     log_window.deiconify()  #显示日志窗口
     clear_log_window(log_text)  #清空之前的日志
-    full_reset(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels,LOCAL_V64_LOG,LOCAL_V64S_LOG)
+    reset_local(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels,LOCAL_V64_LOG,LOCAL_V64S_LOG)
 
-reset_btn=tk.Button(root,text="重置",command=on_full_reset,width=18)
-reset_btn.pack(pady=20)
+reset_local_btn=tk.Button(action_frame,text="重置本地",command=on_full_reset_local,width=18)
+reset_local_btn.pack(side="left",padx=5)
 
 
+# ========================= 重置按钮-重置远程 ============================
+#点击按钮调用，实现一键清空远程机器上的log
+def on_full_reset_remote():
+    reset_remote(root,log_text,all_ip_entries)
+
+reset_remote_btn=tk.Button(action_frame,text="重置远程",command=on_full_reset_remote,width=18)
+reset_remote_btn.pack(side="left",padx=5)
+
+
+
+# ========================= 保存配置按钮 ============================
+def on_save_config():
+    save_config(STATION,all_ip_entries)
+
+save_btn=tk.Button(action_frame,text="保存配置",command=on_save_config,width=18)
+save_btn.pack(side="left",padx=5)
+
+
+
+#<---------------------------------------------- 任务组---------------------------------------------->
+task_frame=tk.Frame(root)
+task_frame.pack(pady=10)
 
 # ========================= 一键收取按钮 ============================
 def on_full_collect():
     log_window.deiconify()  #显示日志窗口
     #clear_log_window(log_text)  #清空之前的日志
-    start_all_collect(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
+    start_all_collect(root,log_text,all_ip_entries,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
 
-collect_btn=tk.Button(root,text="收集",command=on_full_collect,width=18)
-collect_btn.pack(pady=15)
+collect_btn=tk.Button(task_frame,text="收集",command=on_full_collect,width=18)
+collect_btn.pack(side="left",padx=5)
 
 
 

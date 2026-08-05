@@ -41,9 +41,30 @@
 # local_save_dir=r"D:\code_github\V64S_log"
 # print(dir_is_not_empty(local_save_dir))
 
-import time
+# import time
 # timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 # print(timestamp)
 
-timestamp=time.strftime("%Y/%m/%d------>%H:%M:%S")
-print(timestamp)
+# timestamp=time.strftime("%Y/%m/%d------>%H:%M:%S")
+# print(timestamp)
+
+import tkinter as tk
+import os
+
+#创建界面
+#定义函数
+def MyPrint():
+    content=entry.get().strip()
+    print(f"当前输入框中的内容:{content}")
+root=tk.Tk()
+root.title("模拟输入框测试")
+root.geometry("300x100")
+
+#创建输入框
+entry=tk.Entry(root,width=30)
+entry.pack(pady=10)
+
+#创建按钮
+btn=tk.Button(root,text="打印输入内容",command=MyPrint)
+btn.pack()
+

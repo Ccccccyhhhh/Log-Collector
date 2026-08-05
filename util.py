@@ -9,6 +9,7 @@ import time
 from tkinter import ttk
 from tkinter import scrolledtext
 from tkinter import messagebox
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 _collect_lock=threading.Lock()
 
@@ -71,9 +72,10 @@ def prepare_local_folders(root,log_text,folder_path):
 
 		#2.识别当前是那个工位 V64/V64S         
 		station_type=None
-		if "v64s" in folder_path.lower():
+		folder_name=os.path.basename(folder_path).lower()
+		if "v64s" in folder_name:
 			station_type="V64S"
-		elif "v64" in folder_path.lower():
+		elif "v64" in folder_name:
 			station_type="V64"
 
 		if not station_type:
@@ -172,7 +174,7 @@ def reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_
 
 
 #一键完成重置：重置界面+本地文件夹+远程文件夹
-def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels,local_V64_log,local_V64S_log):
+def reset_local(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels,local_V64_log,local_V64S_log):
 
 
 	#弹框提示：确认要执行重置操作
@@ -182,7 +184,6 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
         "• 恢复所有界面状态为灰色\n"
         "• 清空 V64 本地所有日志\n"
         "• 清空 V64S 本地所有日志\n"
-        "• 清空所有远程机器日志\n\n"
         "确定继续吗？"
 	):
 		return False
@@ -205,23 +206,7 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
 			prepare_local_folders(root,log_text,local_V64S_log)
 			root.after(0,lambda:write_log(log_text,"✅️本地log已清理"))
 
-			#3.清空远程
-			for key,info in STATION.items():
-				ip=info["ip"].strip()
-				user=info["user"]
-				remote_dir=info["remote_dir"]
-				if ip:
-					clean_remote_logs(log_text,user,ip,remote_dir)
-					root.after(0,lambda ip=ip:write_log(log_text,f"✅️远程清理:{ip}"))
-
-			#for debug
-			# ip="139.224.223.137"
-			# user="root"
-			# remote_dir="/home/cyh/python_test/V64_TT_PreDFU"
-			# clean_remote_logs(user,ip,remote_dir)
-			# print("✅️远程清理")
-
-			root.after(0,lambda:write_log(log_text,"所有重置任务已完成！"))
+			root.after(0,lambda:write_log(log_text,"重置本地任务已完成！"))
 			return True
 
 
@@ -238,6 +223,70 @@ def full_reset(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CY
 	t.start()
 
 
+
+def reset_remote(root,log_text,all_ip_entries):
+
+
+	#弹框提示：确认要执行重置操作
+	if not messagebox.askokcancel(
+		"⚠️ 确认重置",
+        "即将执行：\n\n"
+        "• 清空所有远程机器日志\n\n"
+        "确定继续吗？"
+	):
+		return False
+
+
+	def reset_work():
+		#线程安全检查，防止多线程同时访问资源
+		if not _collect_lock.acquire(blocking=False):
+			root.after(0,lambda:write_log(log_text, "⚠️ 有其他任务运行中，无法重置"))
+			return
+		
+		#执行重置逻辑
+		try:
+			#3.清空远程
+			for key,info in STATION.items():
+				#判定key对应的entry是否存在；若不存在，则打印错误
+				entry=all_ip_entries.get(key)
+				if entry is None:
+					root.after(0,lambda key=key: write_log(log_text, f"⚠️ 未找到 {key} 的输入框，跳过"))
+					continue
+				ip=entry.get().strip()
+				user=info["user"]
+				remote_dir=info["remote_dir"]
+				if ip:
+					clean_remote_logs(log_text,user,ip,remote_dir)
+					root.after(0,lambda key=key,ip=ip:write_log(log_text,f"✅️远程清理{key}:{ip}"))  #lambda执行具有延时性，捕捉变量不及时，需要提前捕获固定值
+				else:
+					root.after(0,lambda key=key,ip=ip:write_log(log_text,f"⚠️{key}站位的ip为空,跳过"))
+					continue
+			
+			#for debug
+			# ip="139.224.223.137"
+			# user="root"
+			# remote_dir="/home/cyh/python_test/V64_TT_PreDFU"
+			# clean_remote_logs(user,ip,remote_dir)
+			# print("✅️远程清理")
+
+			root.after(0,lambda:write_log(log_text,"重置远程任务已完成！"))
+			return True
+
+
+
+		except Exception as e:
+			root.after(0,lambda e=e:write_log(log_text,f"❌️重置失败:{e}"))
+			return False
+		
+
+		finally:
+			_collect_lock.release()
+
+
+	t=threading.Thread(target=reset_work,daemon=True)
+	t.start()
+
+
 #判断目录内有效文件个数
 def dir_is_not_empty(local_save_dir):
 	if not os.path.exists(local_save_dir):
@@ -250,7 +299,7 @@ def dir_is_not_empty(local_save_dir):
 
 
 #单点采集函数
-def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir):
+def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir,station_key):
 	#label_obj:当前站位对应色块label  user:远程用户名  ip:设备IP  remote_dir:远程日志目录  local_save_dir：本地保存目录
 
 	#如果本地目录已存在有效文件，在二次收取时自动跳过
@@ -262,6 +311,8 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 
 	ip=ip.strip()
 	if not ip:
+		root.after(0,lambda:set_status(label_obj,"fail"))
+		root.after(0,lambda:write_log(log_text,f"❌️{station_key}远程机器IP地址为空,请填写有效IP"))
 		return
 		
 	#1.状态改为收集中
@@ -271,28 +322,31 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 		#2.拉取远程整个目录到本地
 	try:
 		cmd=[
-			"scp","-r",
-			f"{user}@{ip}:{remote_dir}/*",
+			"rsync",
+			"-avzP",
+			"-e",
+			"ssh",
+			f"{user}@{ip}:{remote_dir}/",
 			local_save_dir
 			]
 		subprocess.run(cmd,check=True,capture_output=True)
 
 		#成功时变绿色
 		root.after(0,lambda:set_status(label_obj,"success"))
-		root.after(0,lambda:write_log(log_text,f"✅️成功:{ip}{remote_dir}->收集完成"))
+		root.after(0,lambda:write_log(log_text,f"✅️成功:{station_key}:{remote_dir}->收集完成"))
 		print(f"采集成功：{ip}->{remote_dir}")
 
 	except Exception as e:
 		err = str(e).lower()
 		if "not find" in err or "no such file" in err or "directory is empty" in err or "returned non-zero exit status 1" in err:
 			root.after(0, lambda: set_status(label_obj, "wait"))
-			root.after(0,lambda:write_log(log_text,f"远程文件夹为空，等待下一轮收集：{ip}{remote_dir}"))
+			root.after(0,lambda:write_log(log_text,f"远程文件夹为空，等待下一轮收集...station:{station_key} ip:{ip} remot_path:{remote_dir}"))
 		elif "connection refused" in err or "timed out" in err:
 			root.after(0, lambda: set_status(label_obj, "fail"))
-			root.after(0,lambda:write_log(log_text,f"❌️连接超时:{ip}"))
+			root.after(0,lambda:write_log(log_text,f"❌️连接超时 station:{station_key} ip:{ip}"))
 		elif "permission" in err or "denied" in err:
 			root.after(0, lambda: set_status(label_obj, "fail"))
-			root.after(0,lambda:write_log(log_text,f"❌️权限不足:{ip}"))
+			root.after(0,lambda:write_log(log_text,f"❌️权限不足 station:{station_key} ip:{ip}"))
 		else:
 			root.after(0, lambda: set_status(label_obj, "fail"))
 			root.after(0,lambda:write_log(log_text,f"❌️收取失败:{str(e)[:20]}"))
@@ -302,7 +356,8 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 
 
 #批量全处理-》一键启动全部采集
-def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
+# start_all_collect(root,log_text,all_ip_entries,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
+def start_all_collect(root,log_text,all_ip_entries,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
 	
 	
 	def collect_work():
@@ -313,12 +368,16 @@ def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,
 		
 		try:
 			#打印日志分隔符和时间戳
-			timestamp=time.strftime("%Y-%m-%d %H:%M:%S")
-			separator=f"\n{'='*60}\n {timestamp}开始收取log \n{'='*60}\n"
-			root.after(0,lambda:write_log(log_text,separator))
+			root.after(0,lambda:write_log(log_text,"🔄 收集任务开始，请稍候..."))
+			# timestamp=time.strftime("%Y-%m-%d %H:%M:%S")
+			# separator=f"\n{'='*60}\n {timestamp}开始收取log \n{'='*60}\n"
+			# root.after(0,lambda:write_log(log_text,separator))
 
 			#绑定"V64 TT PreDFU"->label + 本地路径 + 远程路径
 			label_map={}
+
+			#收集所有站位的参数列表
+			tasks=[]
 
 			#V64_TT
 			for key,lab in V64_TT_labels.items():
@@ -341,24 +400,61 @@ def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,
 				label_map[full_key]=(lab,LOCAL_V64S_LOG)
 
 
-			#遍历全局配置，逐个采集
+			#收取所有站位的参数列表
 			for station_key,info in STATION.items():
 				if station_key not in label_map:
 					continue
 
 				lab_obj,local_root=label_map[station_key]
 				local_full_path=os.path.join(local_root,station_key)
+				
+				#从all_ip_entries获取ip
+				entry=all_ip_entries.get(station_key)
+				if not entry:
+					root.after(0,lambda k=station_key:write_log(log_text,f"未找到{k}的输入框，跳过"))
+					continue
+
+				ip=entry.get().strip()
+				if not ip:
+					root.after(0,lambda k=station_key:write_log(log_text,f"未找到{k}的ip,跳过"))
+					continue
 
 				#执行单点采集逻辑
-				collect_single_log(
-					root,
-					log_text,
-					label_obj=lab_obj,
-					user=info["user"],
-					ip=info["ip"],
-					remote_dir=info["remote_dir"],
-					local_save_dir=local_full_path
-				)
+				tasks.append({
+					"root":root,
+					"log_text":log_text,
+					"label_obj":lab_obj,
+					"user":info["user"],
+					"ip":ip,
+					"remote_dir":info["remote_dir"],
+					"local_save_dir":local_full_path,
+					"station_key":station_key
+				})
+
+			#使用线程池并发执行任务
+			with ThreadPoolExecutor(max_workers=6) as executor:
+				#futures=[] #存储线程池返回对象，监控任务执行状态
+				future_to_station={} #记录future和station_key的关系，在future.result()异常时帮我们定位
+
+				#分配任务给空闲线程
+				for task in tasks:
+					station_key=task.get("station_key")
+					future=executor.submit(collect_single_log,**task)
+					future_to_station[future]=station_key
+				
+				#等待任务结果
+				for future in as_completed(future_to_station):
+					station_key=future_to_station[future]
+					try:
+						future.result()
+					except Exception as e:
+						root.after(0,lambda k=station_key:write_log(log_text, f"⚠️ 站点 {k} 发生未捕获异常: {e}"))
+
+
+				
+
+			#所有站点收集完成
+			root.after(0,lambda:write_log(log_text,"✅ 所有站点收集完成"))
 
 		except Exception as e:
 			print("采集失败原因：", e)
@@ -367,13 +463,53 @@ def start_all_collect(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,
 			
 		finally:
 			_collect_lock.release()
+			root.after(0,lambda:write_log(log_text,"✅ 收集任务结束"))
 		
 	t=threading.Thread(target=collect_work,daemon=True)
 	t.start()
 
 
+# ============================ 修改config.py相关操作 ==============================
+def save_config(STATION,all_ip_entries):
+	#1.将all_ip_entries中entry实时的ip更新到STATION->此时只修改了内存中的config.py
+	for key,item in STATION.items():
+		STATION[key]["ip"]=all_ip_entries[key].get()
 
-	# ============================ log日志窗口先相关操作 ==============================
+	#将内存中的config.py覆盖写到磁盘中
+	config_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.py")
+
+	with open(config_path,'w',encoding='utf-8') as f :
+		#1.写固定头
+		f.write("import os\n\n")
+
+		#2.写STATION
+		f.write("# ================== 工位配置 ==================\n")
+		f.write("STATION = {\n")
+		#遍历STATION每一行，以期望的格式逐行写入
+		for key,item in STATION.items():
+			line = f'    "{key}": {{"ip":"{item["ip"]}","user":"{item["user"]}","remote_dir":"{item["remote_dir"]}"}},\n'
+			f.write(line)
+		f.write("}\n\n")
+		#3.写本地路径
+		#macos
+		f.write('LOCAL_V64_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64")\n')
+		f.write('LOCAL_V64S_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64s")\n\n')
+
+		#4.写status
+		f.write("# ===================状态颜色定义===================\n")
+		f.write(f"STATUS = {repr(STATUS)}\n")
+
+		#5.写站位信息
+		f.write("#======================站位信息========================\n")
+		f.write(f"TT_steps = {repr(TT_steps)}\n")
+		f.write(f"CYG_steps = {repr(CYG_steps)}\n")
+
+	# 弹出提示
+	messagebox.showinfo("成功", "IP 配置已保存到 config.py,下次启动生效")
+
+
+
+	# ============================ log日志窗口相关操作 ==============================
 #写入日志函数
 def write_log(log_text,msg):
     log_text.config(state=tk.NORMAL)
