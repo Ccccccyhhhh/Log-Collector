@@ -201,7 +201,7 @@ reset_remote_btn.pack(side="left",padx=5)
 
 # ========================= 保存配置按钮 ============================
 def on_save_config():
-    save_config(STATION,all_ip_entries)
+    save_config(STATION,all_ip_entries,root,log_text)
 
 save_btn=tk.Button(action_frame,text="保存配置",command=on_save_config,width=18)
 save_btn.pack(side="left",padx=5)

@@ -19,15 +19,16 @@ STATION = {
     "V64S_TT_FCT-ENG": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_TT_FCT-ENG"},
     "V64S_TT_PostFCT-DOE": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_TT_PostFCT-DOE"},
     "V64S_TT_IBAT_RESET": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_TT_IBAT_RESET"},
-    "V64S_CYG_PostDFU-SOC": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostDFU-SOC"},
-    "V64S_CYG_PostDFU-ENG": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostDFU-ENG"},
-    "V64S_CYG_PostFCT": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostFCT"},
-    "V64S_CYG_FCT-ENG": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_FCT-ENG"},
-    "V64S_CYG_PostFCT-DOE": {"ip":"139.224.223.137","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostFCT-DOE"},
+    "V64S_CYG_PostDFU-SOC": {"ip":"139","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostDFU-SOC"},
+    "V64S_CYG_PostDFU-ENG": {"ip":"139","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostDFU-ENG"},
+    "V64S_CYG_PostFCT": {"ip":"139","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostFCT"},
+    "V64S_CYG_FCT-ENG": {"ip":"139","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_FCT-ENG"},
+    "V64S_CYG_PostFCT-DOE": {"ip":"139","user":"root","remote_dir":"/home/cyh/log/V64S_CYG_PostFCT-DOE"},
 }
 
-LOCAL_V64_LOG= 'C:\\Users\\拯救者\\OneDrive\\Desktop\\V64_V64S_log\\V64'
-LOCAL_V64S_LOG= 'C:\\Users\\拯救者\\OneDrive\\Desktop\\V64_V64S_log\\V64s'
+LOCAL_V64_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64")
+LOCAL_V64S_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64s")
+
 # ===================状态颜色定义===================
 STATUS = {'wait': 'lightgray', 'running': '#63afff', 'success': '#90ed90', 'fail': '#ff7070'}
 #======================站位信息========================

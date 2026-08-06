@@ -470,42 +470,58 @@ def start_all_collect(root,log_text,all_ip_entries,V64_TT_labels,V64_CYG_labels,
 
 
 # ============================ 修改config.py相关操作 ==============================
-def save_config(STATION,all_ip_entries):
-	#1.将all_ip_entries中entry实时的ip更新到STATION->此时只修改了内存中的config.py
-	for key,item in STATION.items():
-		STATION[key]["ip"]=all_ip_entries[key].get()
-
-	#将内存中的config.py覆盖写到磁盘中
-	config_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.py")
-
-	with open(config_path,'w',encoding='utf-8') as f :
-		#1.写固定头
-		f.write("import os\n\n")
-
-		#2.写STATION
-		f.write("# ================== 工位配置 ==================\n")
-		f.write("STATION = {\n")
-		#遍历STATION每一行，以期望的格式逐行写入
+def save_config(STATION,all_ip_entries,root,log_text):
+	try:
+		#1.将all_ip_entries中entry实时的ip更新到STATION->此时只修改了内存中的config.py
 		for key,item in STATION.items():
-			line = f'    "{key}": {{"ip":"{item["ip"]}","user":"{item["user"]}","remote_dir":"{item["remote_dir"]}"}},\n'
-			f.write(line)
-		f.write("}\n\n")
-		#3.写本地路径
-		#macos
-		f.write('LOCAL_V64_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64")\n')
-		f.write('LOCAL_V64S_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64s")\n\n')
+			STATION[key]["ip"]=all_ip_entries[key].get()
 
-		#4.写status
-		f.write("# ===================状态颜色定义===================\n")
-		f.write(f"STATUS = {repr(STATUS)}\n")
+		#将内存中的config.py覆盖写到磁盘中
+		#config_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.py")
+		#获取config.py的正确路径
+		#1.打包后的可执行文件所在目录   if getattr(sys, 'frozen', False):
+		if getattr(sys,'frozen',False):        
+			base_dir=os.path.dirname(sys.executable)
+		#2.开发环境下
+		else:
+			base_dir=os.path.dirname(os.path.abspath(__file__))
 
-		#5.写站位信息
-		f.write("#======================站位信息========================\n")
-		f.write(f"TT_steps = {repr(TT_steps)}\n")
-		f.write(f"CYG_steps = {repr(CYG_steps)}\n")
+		config_path=os.path.join(base_dir,"config.py")
+			
 
-	# 弹出提示
-	messagebox.showinfo("成功", "IP 配置已保存到 config.py,下次启动生效")
+		with open(config_path,'w',encoding='utf-8') as f :
+			#1.写固定头
+			f.write("import os\n\n")
+
+			#2.写STATION
+			f.write("# ================== 工位配置 ==================\n")
+			f.write("STATION = {\n")
+			#遍历STATION每一行，以期望的格式逐行写入
+			for key,item in STATION.items():
+				line = f'    "{key}": {{"ip":"{item["ip"]}","user":"{item["user"]}","remote_dir":"{item["remote_dir"]}"}},\n'
+				f.write(line)
+			f.write("}\n\n")
+			#3.写本地路径
+			#macos
+			f.write('LOCAL_V64_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64")\n')
+			f.write('LOCAL_V64S_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64s")\n\n')
+
+			#4.写status
+			f.write("# ===================状态颜色定义===================\n")
+			f.write(f"STATUS = {repr(STATUS)}\n")
+
+			#5.写站位信息
+			f.write("#======================站位信息========================\n")
+			f.write(f"TT_steps = {repr(TT_steps)}\n")
+			f.write(f"CYG_steps = {repr(CYG_steps)}\n")
+
+		# 弹出提示
+		root.after(0,lambda:write_log(log_text,f"配置已保存到:{config_path}"))
+		messagebox.showinfo("成功", "IP 配置已保存到 config.py,下次启动生效")
+
+	except Exception as e:
+		messagebox.showerror("错误", f"保存配置失败：{e}")
+
 
 
 
