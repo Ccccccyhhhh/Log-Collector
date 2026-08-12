@@ -331,10 +331,17 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 			]
 		subprocess.run(cmd,check=True,capture_output=True)
 
-		#成功时变绿色
-		root.after(0,lambda:set_status(label_obj,"success"))
-		root.after(0,lambda:write_log(log_text,f"✅️成功:{station_key}:{remote_dir}->收集完成"))
-		print(f"采集成功：{ip}->{remote_dir}")
+		#指令执行成功后，还需判断当前本地文件夹是否有有效文件（为了区分有效文件和无效的隐藏目录）
+		if dir_is_not_empty(local_save_dir):
+			# 当本地目录检查到有效文件-》收集成功，变绿色
+			root.after(0,lambda:set_status(label_obj,"success"))
+			root.after(0,lambda:write_log(log_text,f"✅️成功:{station_key}:{remote_dir}->收集完成"))
+			print(f"采集成功：{ip}->{remote_dir}")
+		else:
+			#当本地目录未找到有效文件-》代表未收集成功(远程文件夹没有有效文件)，变灰色
+			root.after(0, lambda: set_status(label_obj, "wait"))
+			root.after(0,lambda:write_log(log_text,f"远程文件夹为空，等待下一轮收集...station:{station_key} ip:{ip} remot_path:{remote_dir}"))
+		
 
 	except Exception as e:
 		err = str(e).lower()

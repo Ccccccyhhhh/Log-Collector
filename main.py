@@ -192,6 +192,7 @@ reset_local_btn.pack(side="left",padx=5)
 # ========================= 重置按钮-重置远程 ============================
 #点击按钮调用，实现一键清空远程机器上的log
 def on_full_reset_remote():
+    log_window.deiconify()  #显示日志窗口
     reset_remote(root,log_text,all_ip_entries)
 
 reset_remote_btn=tk.Button(action_frame,text="重置远程",command=on_full_reset_remote,width=18)
