@@ -36,32 +36,32 @@ log_window.protocol("WM_DELETE_WINDOW", lambda: log_window.withdraw())
 
 
 
-# ================== V64 工位 ==================
-v64_label = tk.Label(root, text="V64 工位", font=("黑体",15,"bold"))
-v64_label.pack(anchor="w", padx=20, pady=5)
+# ================== V4 工位 ==================
+v74_label = tk.Label(root, text="V74 工位", font=("黑体",15,"bold"))
+v74_label.pack(anchor="w", padx=20, pady=5)
 
 #定义块
-v64_frame_TT = tk.Frame(root)
-v64_frame_TT.pack(anchor="w", padx=20)
+v74_frame_TT = tk.Frame(root)
+v74_frame_TT.pack(anchor="w", padx=20)
 
-v64_frame_CYG=tk.Frame(root)
-v64_frame_CYG.pack(anchor="w",padx=20,pady=8)
+v74_frame_CYG=tk.Frame(root)
+v74_frame_CYG.pack(anchor="w",padx=20,pady=8)
 
 #定义vendor提示标签
-tk.Label(v64_frame_TT, text="TT:", font=("",10,"bold"),width=4).pack(side="left", padx=2)
-tk.Label(v64_frame_CYG,text="CYG:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
+tk.Label(v74_frame_TT, text="TT:", font=("",10,"bold"),width=4).pack(side="left", padx=2)
+tk.Label(v74_frame_CYG,text="CYG:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
 
 
 #将frame内创建的各个站位的label和entry创建并管理起来
 all_ip_entries={}
 
-v64_TT_labels = {}
-v64_CYG_labels={}
+v74_TT_labels = {}
+v74_CYG_labels={}
 
 
 for step in TT_steps:
     #创建独立的小Frame，将每个lab和entry绑定在一起
-    sub_frame=tk.Frame(v64_frame_TT)
+    sub_frame=tk.Frame(v74_frame_TT)
     sub_frame.pack(side="left",padx=2)
     #创建色块对象label
     lbl = tk.Label(
@@ -69,14 +69,14 @@ for step in TT_steps:
         bg=STATUS["wait"], relief="solid"
     )
     lbl.pack(padx=2)
-    v64_TT_labels[step] = lbl
+    v74_TT_labels[step] = lbl
 
     #创建Entry输入框
     entry=tk.Entry(sub_frame,width=14,justify="center")
     entry.pack(pady=(2,0))
 
     #拼接出完整路径（"V64_TT_PreDFU"），并从station中取出对应的ip插入输入框中
-    key=f"V64_TT_{step}"
+    key=f"TT_{step}"
     default_ip=STATION[key]["ip"]
     entry.insert(0,default_ip)
 
@@ -87,20 +87,20 @@ for step in TT_steps:
     
 
 for step in CYG_steps:
-    sub_frame=tk.Frame(v64_frame_CYG)
+    sub_frame=tk.Frame(v74_frame_CYG)
     sub_frame.pack(side="left",padx=2)
     lbl = tk.Label(
         sub_frame,text=step, width=14, height=3,
         bg=STATUS["wait"], relief="solid"
     )
     lbl.pack(padx=2)
-    v64_CYG_labels[step] = lbl
+    v74_CYG_labels[step] = lbl
 
     #创建Entry输入框
     entry=tk.Entry(sub_frame,width=14,justify="center")
     entry.pack(pady=(2,0))
 
-    key=f"V64_CYG_{step}"
+    key=f"CYG_{step}"
     default_ip=STATION[key]["ip"]
     entry.insert(0,default_ip)
 
@@ -110,80 +110,80 @@ for step in CYG_steps:
 
 
 # ================== V64S 工位 ==================
-v64s_label = tk.Label(root, text="V64S 工位", font=("黑体",15,"bold"))
-v64s_label.pack(anchor="w", padx=20, pady=10)
+# v64s_label = tk.Label(root, text="V64S 工位", font=("黑体",15,"bold"))
+# v64s_label.pack(anchor="w", padx=20, pady=10)
 
-#定义块
-v64s_frame_TT = tk.Frame(root)
-v64s_frame_TT.pack(anchor="w", padx=20)
+# #定义块
+# v64s_frame_TT = tk.Frame(root)
+# v64s_frame_TT.pack(anchor="w", padx=20)
 
-v64s_frame_CYG=tk.Frame(root)
-v64s_frame_CYG.pack(anchor="w",padx=20,pady=8)
-
-
-#定义vendor标识符
-tk.Label(v64s_frame_TT,text="TT:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
-tk.Label(v64s_frame_CYG,text="CYG:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
-
-#创建frame内各站位的label并保存起来
-v64s_TT_labels = {}
-v64s_CYG_labels={}
+# v64s_frame_CYG=tk.Frame(root)
+# v64s_frame_CYG.pack(anchor="w",padx=20,pady=8)
 
 
-for step in TT_steps:
-    sub_frame=tk.Frame(v64s_frame_TT)
-    sub_frame.pack(side="left",padx=2)
+# #定义vendor标识符
+# tk.Label(v64s_frame_TT,text="TT:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
+# tk.Label(v64s_frame_CYG,text="CYG:",font=("",10,"bold"),width=4).pack(side="left",padx=2)
 
-    lbl = tk.Label(
-        sub_frame, text=step, width=14, height=3,
-        bg=STATUS["wait"], relief="solid"
-    )
-    lbl.pack(padx=2)
-    v64s_TT_labels[step] = lbl
-
-    entry=tk.Entry(sub_frame,width=14,justify="center")
-    entry.pack(pady=(2,0))
-
-    key=f"V64S_TT_{step}"
-    default_ip=STATION[key]["ip"]
-    entry.insert(0,default_ip)
-
-    all_ip_entries[key]=entry
+# #创建frame内各站位的label并保存起来
+# v64s_TT_labels = {}
+# v64s_CYG_labels={}
 
 
+# for step in TT_steps:
+#     sub_frame=tk.Frame(v64s_frame_TT)
+#     sub_frame.pack(side="left",padx=2)
 
-for step in CYG_steps:
-    sub_frame=tk.Frame(v64s_frame_CYG)
-    sub_frame.pack(side="left",padx=2)
+#     lbl = tk.Label(
+#         sub_frame, text=step, width=14, height=3,
+#         bg=STATUS["wait"], relief="solid"
+#     )
+#     lbl.pack(padx=2)
+#     v64s_TT_labels[step] = lbl
 
-    lbl=tk.Label(
-	sub_frame,text=step,width=14,height=3,
-	bg=STATUS["wait"],relief="solid"
-	)
-    lbl.pack(padx=2)
-    v64s_CYG_labels[step]=lbl
+#     entry=tk.Entry(sub_frame,width=14,justify="center")
+#     entry.pack(pady=(2,0))
 
-    entry=tk.Entry(sub_frame,width=14,justify="center")
-    entry.pack(pady=(2,0))
+#     key=f"V64S_TT_{step}"
+#     default_ip=STATION[key]["ip"]
+#     entry.insert(0,default_ip)
 
-    key=f"V64S_CYG_{step}"
-    default_ip=STATION[key]["ip"]
-    entry.insert(0,default_ip)
+#     all_ip_entries[key]=entry
 
-    all_ip_entries[key]=entry
+
+
+# for step in CYG_steps:
+#     sub_frame=tk.Frame(v64s_frame_CYG)
+#     sub_frame.pack(side="left",padx=2)
+
+#     lbl=tk.Label(
+# 	sub_frame,text=step,width=14,height=3,
+# 	bg=STATUS["wait"],relief="solid"
+# 	)
+#     lbl.pack(padx=2)
+#     v64s_CYG_labels[step]=lbl
+
+#     entry=tk.Entry(sub_frame,width=14,justify="center")
+#     entry.pack(pady=(2,0))
+
+#     key=f"V64S_CYG_{step}"
+#     default_ip=STATION[key]["ip"]
+#     entry.insert(0,default_ip)
+
+#     all_ip_entries[key]=entry
 
 
 
 #<---------------------------------------------- 操作组---------------------------------------------->
 action_frame=tk.Frame(root)
-action_frame.pack(pady=10)
+action_frame.pack(pady=30)
 
 # ========================= 重置按钮-重置本地 ============================
 #点击按钮调用，实现一键清空界面和本地文件夹
 def on_full_reset_local():
     log_window.deiconify()  #显示日志窗口
     clear_log_window(log_text)  #清空之前的日志
-    reset_local(root,log_text,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels,LOCAL_V64_LOG,LOCAL_V64S_LOG)
+    reset_local(root,log_text,v74_TT_labels,v74_CYG_labels,LOCAL_V74_LOG)
 
 reset_local_btn=tk.Button(action_frame,text="重置本地",command=on_full_reset_local,width=18)
 reset_local_btn.pack(side="left",padx=5)
@@ -217,7 +217,7 @@ task_frame.pack(pady=10)
 def on_full_collect():
     log_window.deiconify()  #显示日志窗口
     #clear_log_window(log_text)  #清空之前的日志
-    start_all_collect(root,log_text,all_ip_entries,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
+    start_all_collect(root,log_text,all_ip_entries,v74_TT_labels,v74_CYG_labels)
 
 collect_btn=tk.Button(task_frame,text="收集",command=on_full_collect,width=18)
 collect_btn.pack(side="left",padx=5)
@@ -234,7 +234,7 @@ interval_entry.pack(side="left", padx=5)
 auto_btn = tk.Button(auto_frame, text="开始自动收集")
 auto_btn.pack(side="left", padx=5)
 
-all_label_dicts=[v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels]
+all_label_dicts=[v74_TT_labels,v74_CYG_labels]
 auto_collector=AutoCollector(root,auto_btn,on_full_collect,all_label_dicts,interval_sec=60)
 
 auto_btn.config(command=auto_collector.toggle)

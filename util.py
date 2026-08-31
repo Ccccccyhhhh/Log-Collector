@@ -48,8 +48,7 @@ CFG = load_external_config()
 
 # 为了方便，把常用的配置提取成全局变量（和原来一样）
 STATION = CFG.STATION
-LOCAL_V64_LOG = CFG.LOCAL_V64_LOG
-LOCAL_V64S_LOG = CFG.LOCAL_V64S_LOG
+LOCAL_V74_LOG = CFG.LOCAL_V74_LOG
 STATUS = CFG.STATUS
 TT_steps = CFG.TT_steps
 CYG_steps = CFG.CYG_steps
@@ -71,42 +70,39 @@ def prepare_local_folders(root,log_text,folder_path):
 
 
 		#2.识别当前是那个工位 V64/V64S         
-		station_type=None
-		folder_name=os.path.basename(folder_path).lower()
-		if "v64s" in folder_name:
-			station_type="V64S"
-		elif "v64" in folder_name:
-			station_type="V64"
+		# station_type=None
+		# folder_name=os.path.basename(folder_path).lower()
+		# if "v64s" in folder_name:
+		# 	station_type="V64S"
+		# elif "v64" in folder_name:
+		# 	station_type="V64"
 
-		if not station_type:
-			root.after(0,lambda:write_log(log_text,"❌️未识别到本地工位"))
-			return
+		# if not station_type:
+		# 	root.after(0,lambda:write_log(log_text,"❌️未识别到本地工位"))
+		# 	return
 
 
 		#3.遍历STATION字典，只处理当前Bundle版本的
 		for dir_name in STATION.keys():
-			#只匹配自己bundle(V64/NaV64Shan)
-			prefix=dir_name.split("_")[0]
-			if prefix==station_type:
-				#拼接完整路径:V64_log/V64_TT_PreDFU
-				full_path=os.path.join(folder_path,dir_name)
+			#拼接完整路径:smokey_log/TT_PreDFU
+			full_path=os.path.join(folder_path,dir_name)
 
-				#===============核心逻辑：以每个路径为单位操作===============
-				#1.不存在->创建
-				#2.存在->清空
-				if not os.path.exists(full_path):
-					os.makedirs(full_path)
+			#===============核心逻辑：以每个路径为单位操作===============
+			#1.不存在->创建
+			#2.存在->清空
+			if not os.path.exists(full_path):
+				os.makedirs(full_path)
+			else:
+				# 获取目录下所有内容，过滤隐藏文件也一并判断
+				dir_content = os.listdir(full_path)
+				if len(dir_content) > 0:
+					# 目录有内容，执行清空
+					clear_dir_keep_folder(full_path)
+					root.after(0,lambda p=full_path:write_log(log_text,f"已清空:{p}"))
 				else:
-					# 获取目录下所有内容，过滤隐藏文件也一并判断
-					dir_content = os.listdir(full_path)
-					if len(dir_content) > 0:
-                        # 目录有内容，执行清空
-						clear_dir_keep_folder(full_path)
-						root.after(0,lambda p=full_path:write_log(log_text,f"已清空:{p}"))
-					else:
-                        # 目录为空，不做任何操作，可选择打印日志
-                        # root.after(0,lambda p=full_path:write_log(log_text,f"目录为空无需清理:{p}"))
-						pass
+					# 目录为空，不做任何操作，可选择打印日志
+					# root.after(0,lambda p=full_path:write_log(log_text,f"目录为空无需清理:{p}"))
+					pass
 
 	except Exception as e:
 		write_log(log_text,f"❌️准备本地文件夹失败:{folder_path}->{e}")
@@ -151,20 +147,20 @@ def clear_dir_keep_folder(folder_path):
 
 
 #重置界面所有色块颜色
-def reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
+def reset_ui(root,log_text,V74_TT_labels,V74_CYG_labels):
 	try:
-		for lbl in V64_TT_labels.values():
+		for lbl in V74_TT_labels.values():
 			# root.after(0, lambda: set_status(lbl, "wait"))
 			set_status(lbl, "wait")
-		for lbl in V64_CYG_labels.values():
+		for lbl in V74_CYG_labels.values():
 			# root.after(0, lambda: set_status(lbl, "wait"))
 			set_status(lbl, "wait")
-		for lbl in V64S_TT_labels.values():
-			# root.after(0, lambda: set_status(lbl, "wait"))
-			set_status(lbl, "wait")
-		for lbl in V64S_CYG_labels.values():
-			# root.after(0, lambda: set_status(lbl, "wait"))
-			set_status(lbl, "wait")
+		# for lbl in V64S_TT_labels.values():
+		# 	# root.after(0, lambda: set_status(lbl, "wait"))
+		# 	set_status(lbl, "wait")
+		# for lbl in V64S_CYG_labels.values():
+		# 	# root.after(0, lambda: set_status(lbl, "wait"))
+		# 	set_status(lbl, "wait")
 
 	except Exception as e:
 		write_log(log_text,f"❌️重置界面失败:{e}")
@@ -173,8 +169,8 @@ def reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_
 		
 
 
-#一键完成重置：重置界面+本地文件夹+远程文件夹
-def reset_local(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels,local_V64_log,local_V64S_log):
+#一键完成重置本地文件夹
+def reset_local(root,log_text,V74_TT_labels,V74_CYG_labels,local_V74_log):
 
 
 	#弹框提示：确认要执行重置操作
@@ -182,8 +178,7 @@ def reset_local(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_C
 		"⚠️ 确认重置",
         "即将执行：\n\n"
         "• 恢复所有界面状态为灰色\n"
-        "• 清空 V64 本地所有日志\n"
-        "• 清空 V64S 本地所有日志\n"
+        "• 清空 V74 本地所有日志\n"
         "确定继续吗？"
 	):
 		return False
@@ -198,12 +193,11 @@ def reset_local(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_C
 		#执行重置逻辑
 		try:
 			#1.清空界面
-			root.after(0,lambda:reset_ui(root,log_text,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels))
+			root.after(0,lambda:reset_ui(root,log_text,V74_TT_labels,V74_CYG_labels))
 			root.after(0,lambda:write_log(log_text,"✅️界面重置成功"))
 
 			#2.清空本地
-			prepare_local_folders(root,log_text,local_V64_log)
-			prepare_local_folders(root,log_text,local_V64S_log)
+			prepare_local_folders(root,log_text,local_V74_log)
 			root.after(0,lambda:write_log(log_text,"✅️本地log已清理"))
 
 			root.after(0,lambda:write_log(log_text,"重置本地任务已完成！"))
@@ -363,8 +357,8 @@ def collect_single_log(root,log_text,label_obj,user,ip,remote_dir,local_save_dir
 
 
 #批量全处理-》一键启动全部采集
-# start_all_collect(root,log_text,all_ip_entries,v64_TT_labels,v64_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
-def start_all_collect(root,log_text,all_ip_entries,V64_TT_labels,V64_CYG_labels,V64S_TT_labels,V64S_CYG_labels):
+# start_all_collect(root,log_text,all_ip_entries,v74_TT_labels,v74_CYG_labels,v64s_TT_labels,v64s_CYG_labels)
+def start_all_collect(root,log_text,all_ip_entries,V74_TT_labels,V74_CYG_labels):
 	
 	
 	def collect_work():
@@ -387,24 +381,24 @@ def start_all_collect(root,log_text,all_ip_entries,V64_TT_labels,V64_CYG_labels,
 			tasks=[]
 
 			#V64_TT
-			for key,lab in V64_TT_labels.items():
-				full_key=f"V64_TT_{key}"
-				label_map[full_key]=(lab,LOCAL_V64_LOG)
+			for key,lab in V74_TT_labels.items():
+				full_key=f"TT_{key}"
+				label_map[full_key]=(lab,LOCAL_V74_LOG)
 
 			#V64_CYG
-			for key,lab in V64_CYG_labels.items():
-				full_key=f"V64_CYG_{key}"
-				label_map[full_key]=(lab,LOCAL_V64_LOG)
+			for key,lab in V74_CYG_labels.items():
+				full_key=f"CYG_{key}"
+				label_map[full_key]=(lab,LOCAL_V74_LOG)
 
-			#V64S_TT
-			for key,lab in V64S_TT_labels.items():
-				full_key=f"V64S_TT_{key}"
-				label_map[full_key]=(lab,LOCAL_V64S_LOG)
+			# #V64S_TT
+			# for key,lab in V64S_TT_labels.items():
+			# 	full_key=f"V64S_TT_{key}"
+			# 	label_map[full_key]=(lab,LOCAL_V64S_LOG)
 
-			#V64S_CYG
-			for key,lab in V64S_CYG_labels.items():
-				full_key=f"V64S_CYG_{key}"
-				label_map[full_key]=(lab,LOCAL_V64S_LOG)
+			# #V64S_CYG
+			# for key,lab in V64S_CYG_labels.items():
+			# 	full_key=f"V64S_CYG_{key}"
+			# 	label_map[full_key]=(lab,LOCAL_V64S_LOG)
 
 
 			#收取所有站位的参数列表
@@ -510,9 +504,7 @@ def save_config(STATION,all_ip_entries,root,log_text):
 			f.write("}\n\n")
 			#3.写本地路径
 			#macos
-			f.write('LOCAL_V64_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64")\n')
-			f.write('LOCAL_V64S_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "Smokey_Denali_DenaliS_log", "V64s")\n\n')
-
+			f.write('LOCAL_V74_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "SmokeY_log")\n')
 			#4.写status
 			f.write("# ===================状态颜色定义===================\n")
 			f.write(f"STATUS = {repr(STATUS)}\n")
